@@ -1,8 +1,6 @@
-import { serverTimestamp } from 'firebase/firestore';
-
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { serverTimestamp } from 'firebase/firestore';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -19,8 +17,10 @@ export default function ClienteMenu() {
     const [categoriaActiva, setCategoriaActiva] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
+    // 📌 MESA DESDE LA URL (funciona con HashRouter)
     const [searchParams] = useSearchParams();
-    const tableNumber = searchParams.get('mesa');
+    const mesa = searchParams.get('mesa'); // ej: "1", "6"
+
     const { cart, total, clearCart } = useCart();
 
     useEffect(() => {
@@ -33,37 +33,29 @@ export default function ClienteMenu() {
     };
 
     const handleCheckout = async () => {
-        if (!tableNumber) {
-            alert("Por favor, escanea el código QR de tu mesa nuevamente.");
+        if (!mesa) {
+            alert('Por favor, escaneá el código QR de tu mesa nuevamente.');
             return;
         }
 
         const order = {
-            mesa: tableNumber,
+            mesa,
             items: cart,
-            total: total,
+            total,
             status: 'pendiente',
-            createdAt: serverTimestamp(), // ✅ FECHA Y HORA
+            createdAt: serverTimestamp(),
         };
-
 
         try {
             await createOrder(order);
-            alert("¡Pedido enviado con éxito!");
+            alert('¡Pedido enviado con éxito!');
             clearCart();
             setIsCartOpen(false);
         } catch (error) {
-            console.error("Error al enviar pedido:", error);
-            alert("Hubo un error al enviar tu pedido. Intenta nuevamente.");
+            console.error('Error al enviar pedido:', error);
+            alert('Hubo un error al enviar tu pedido. Intenta nuevamente.');
         }
     };
-
-    // 🔥 Filtrado por categoría
-    const productosFiltrados = categoriaActiva
-        ? products.filter(
-            p => p.categoria === categoriaActiva && p.activo === true
-        )
-        : products.filter(p => p.activo === true);
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
@@ -71,21 +63,28 @@ export default function ClienteMenu() {
 
             <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
 
-                {/* ⚠️ Aviso mesa */}
-                {!tableNumber && (
+                {/* ⚠️ AVISO SI NO HAY MESA */}
+                {!mesa && (
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                         <p className="text-sm text-yellow-700">
-                            No se detectó número de mesa. Por favor, escanea el código QR.
+                            No se detectó número de mesa. Por favor, escaneá el código QR.
                         </p>
                     </div>
                 )}
 
-                {/* 🧱 CATEGORÍAS (solo si NO hay una activa) */}
+                {/* 🪑 INDICADOR DE MESA */}
+                {mesa && (
+                    <div className="mb-4 text-sm text-gray-600">
+                        Mesa <strong>{mesa}</strong>
+                    </div>
+                )}
+
+                {/* 🧱 CATEGORÍAS */}
                 {!categoriaActiva && (
                     <Categorias onSelectCategoria={setCategoriaActiva} />
                 )}
 
-                {/* 🔙 BOTÓN VOLVER */}
+                {/* 🔙 VOLVER */}
                 {categoriaActiva && (
                     <button
                         onClick={() => setCategoriaActiva(null)}
@@ -95,7 +94,7 @@ export default function ClienteMenu() {
                     </button>
                 )}
 
-                {/* 🛒 PRODUCTOS (solo si hay categoría activa) */}
+                {/* 🛒 PRODUCTOS */}
                 {categoriaActiva && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {products
@@ -109,7 +108,6 @@ export default function ClienteMenu() {
 
             </main>
 
-
             <Cart
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
@@ -120,4 +118,5 @@ export default function ClienteMenu() {
         </div>
     );
 }
+
 

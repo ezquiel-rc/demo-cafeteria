@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 
 import ClienteMenu from './pages/ClienteMenu';
@@ -15,7 +15,7 @@ import ProductosVendidos from './pages/ProductosVendidos';
 function App() {
   return (
     <CartProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
 
           {/* ☕ CLIENTE */}
@@ -36,7 +36,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </CartProvider>
   );
 }
