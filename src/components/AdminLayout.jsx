@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { subscribeToOrders } from '../firebase/pedidos';
 import {
@@ -7,11 +7,15 @@ import {
     QrCode,
     LogOut,
     Wallet,
-    ClipboardList
+    ClipboardList,
+    Volume2
 } from 'lucide-react';
 
-// 🔔 AUDIO GLOBAL (una sola vez)
-const audioPedido = new Audio('/sonido-notificacionPedido.mp3');
+// 🔔 AUDIO GLOBAL
+const audioPedido = new Audio(
+    `${process.env.PUBLIC_URL}/sonido-notificacionPedido.mp3`
+);
+
 
 export default function AdminLayout() {
     const location = useLocation();
@@ -19,20 +23,39 @@ export default function AdminLayout() {
     const prevPendingIdsRef = useRef(new Set());
     const firstLoadRef = useRef(true);
 
+    const [audioEnabled, setAudioEnabled] = useState(false);
+
+    // 🔓 Desbloquear audio con interacción real
+    const enableAudio = () => {
+        audioPedido.currentTime = 0;
+        audioPedido.volume = 1;
+
+        audioPedido.play()
+            .then(() => {
+                console.log('🔊 Audio desbloqueado OK');
+                setAudioEnabled(true);
+            })
+            .catch((err) => {
+                console.error('❌ Error audio:', err);
+            });
+    };
+
+
     // 🔥 LISTENER GLOBAL DE PEDIDOS
     useEffect(() => {
         const unsubscribe = subscribeToOrders((orders) => {
+            if (!audioEnabled) return;
+
             const pendientes = orders.filter(o => o.status === 'pendiente');
             const currentIds = new Set(pendientes.map(o => o.id));
 
-            // ⛔ Ignorar primera carga (al entrar / navegar)
+            // ⛔ ignorar primera carga
             if (firstLoadRef.current) {
                 firstLoadRef.current = false;
                 prevPendingIdsRef.current = currentIds;
                 return;
             }
 
-            // 🔍 Detectar pedido nuevo REAL
             let hayNuevo = false;
             currentIds.forEach(id => {
                 if (!prevPendingIdsRef.current.has(id)) {
@@ -49,7 +72,7 @@ export default function AdminLayout() {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [audioEnabled]);
 
     const isActive = (path) => location.pathname === path;
 
@@ -64,58 +87,39 @@ export default function AdminLayout() {
                     </h1>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2">
-                    <Link
-                        to="/admin/pedidos"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/pedidos')
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
+                {/* 🔔 BOTÓN ACTIVAR SONIDO */}
+                {!audioEnabled && (
+                    <button
+                        onClick={enableAudio}
+                        className="mx-4 my-3 bg-amber-500 text-white py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-600"
                     >
+                        <Volume2 className="h-5 w-5" />
+                        Activar sonido de pedidos
+                    </button>
+                )}
+
+                <nav className="flex-1 p-4 space-y-2">
+                    <Link to="/admin/pedidos" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/pedidos') ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <LayoutDashboard className="h-5 w-5" />
                         Pedidos
                     </Link>
 
-                    <Link
-                        to="/admin/menu"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/menu')
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                    >
+                    <Link to="/admin/menu" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/menu') ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <Coffee className="h-5 w-5" />
                         Menú
                     </Link>
 
-                    <Link
-                        to="/admin/qr"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/qr')
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                    >
+                    <Link to="/admin/qr" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/qr') ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <QrCode className="h-5 w-5" />
                         Códigos QR
                     </Link>
 
-                    <Link
-                        to="/admin/caja"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/caja')
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                    >
+                    <Link to="/admin/caja" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/caja') ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <Wallet className="h-5 w-5" />
                         Caja
                     </Link>
 
-                    <Link
-                        to="/admin/registros"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/registros')
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                    >
+                    <Link to="/admin/registros" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${isActive('/admin/registros') ? 'bg-amber-50 text-amber-600' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <ClipboardList className="h-5 w-5" />
                         Registros
                     </Link>
@@ -129,13 +133,13 @@ export default function AdminLayout() {
                 </div>
             </aside>
 
-            {/* CONTENIDO */}
             <main className="flex-1 overflow-y-auto p-8">
                 <Outlet />
             </main>
         </div>
     );
 }
+
 
 
 
