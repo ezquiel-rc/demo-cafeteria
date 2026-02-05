@@ -12,8 +12,9 @@ import { formatDateTime } from '../utils/formatDateTime';
 
 export default function PanelPedidos() {
     const [orders, setOrders] = useState([]);
+    const [showConfirm, setShowConfirm] = useState(false);
 
-    // ✅ SOLO suscripción simple (SIN sonido)
+    // 🔄 Suscripción en tiempo real
     useEffect(() => {
         const unsubscribe = subscribeToOrders(setOrders);
         return () => unsubscribe();
@@ -23,12 +24,9 @@ export default function PanelPedidos() {
         await updateOrderStatus(order.id, newStatus, order.total);
     };
 
-    const archivarPedidos = async () => {
-        const confirmar = window.confirm(
-            "¿Archivar todos los pedidos entregados?\n\nNo se borrarán, solo dejarán de mostrarse."
-        );
-        if (!confirmar) return;
+    const confirmarArchivado = async () => {
         await archivarPedidosEntregados();
+        setShowConfirm(false);
     };
 
     const getStatusColor = (status) => {
@@ -56,8 +54,8 @@ export default function PanelPedidos() {
             <h2 className="text-2xl font-bold mb-6">Pedidos</h2>
 
             <button
-                onClick={archivarPedidos}
-                className="mb-4 bg-gray-600 text-white px-4 py-2 rounded"
+                onClick={() => setShowConfirm(true)}
+                className="mb-4 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800"
             >
                 Archivar pedidos entregados
             </button>
@@ -141,9 +139,45 @@ export default function PanelPedidos() {
                         </div>
                     ))}
             </div>
+
+            {/* 🪟 MODAL CONFIRMACIÓN */}
+            {showConfirm && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            Archivar pedidos
+                        </h3>
+
+                        <p className="text-gray-600 mb-6">
+                            ¿Querés archivar todos los pedidos entregados?
+                            <br />
+                            <span className="text-sm text-gray-400">
+                                No se borrarán, solo dejarán de mostrarse.
+                            </span>
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowConfirm(false)}
+                                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                onClick={confirmarArchivado}
+                                className="px-4 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700"
+                            >
+                                Archivar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
+
 
 
 

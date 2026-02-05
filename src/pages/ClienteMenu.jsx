@@ -1,6 +1,6 @@
+import { serverTimestamp } from 'firebase/firestore';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { serverTimestamp } from 'firebase/firestore';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -17,10 +17,11 @@ export default function ClienteMenu() {
     const [categoriaActiva, setCategoriaActiva] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
-    // 📌 MESA DESDE LA URL (funciona con HashRouter)
-    const [searchParams] = useSearchParams();
-    const mesa = searchParams.get('mesa'); // ej: "1", "6"
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
 
+    const [searchParams] = useSearchParams();
+    const tableNumber = searchParams.get('mesa');
     const { cart, total, clearCart } = useCart();
 
     useEffect(() => {
@@ -33,27 +34,27 @@ export default function ClienteMenu() {
     };
 
     const handleCheckout = async () => {
-        if (!mesa) {
-            alert('Por favor, escaneá el código QR de tu mesa nuevamente.');
+        if (!tableNumber) {
+            setShowErrorModal(true);
             return;
         }
 
         const order = {
-            mesa,
+            mesa: tableNumber,
             items: cart,
-            total,
+            total: total,
             status: 'pendiente',
             createdAt: serverTimestamp(),
         };
 
         try {
             await createOrder(order);
-            alert('¡Pedido enviado con éxito!');
             clearCart();
             setIsCartOpen(false);
+            setShowSuccessModal(true);
         } catch (error) {
-            console.error('Error al enviar pedido:', error);
-            alert('Hubo un error al enviar tu pedido. Intenta nuevamente.');
+            console.error("Error al enviar pedido:", error);
+            setShowErrorModal(true);
         }
     };
 
@@ -61,40 +62,29 @@ export default function ClienteMenu() {
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header toggleCart={() => setIsCartOpen(true)} />
 
-            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+            <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
 
-                {/* ⚠️ AVISO SI NO HAY MESA */}
-                {!mesa && (
+                {!tableNumber && (
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                         <p className="text-sm text-yellow-700">
-                            No se detectó número de mesa. Por favor, escaneá el código QR.
+                            No se detectó número de mesa. Por favor, escaneá el QR de tu mesa.
                         </p>
                     </div>
                 )}
 
-                {/* 🪑 INDICADOR DE MESA */}
-                {mesa && (
-                    <div className="mb-4 text-sm text-gray-600">
-                        Mesa <strong>{mesa}</strong>
-                    </div>
-                )}
-
-                {/* 🧱 CATEGORÍAS */}
                 {!categoriaActiva && (
                     <Categorias onSelectCategoria={setCategoriaActiva} />
                 )}
 
-                {/* 🔙 VOLVER */}
                 {categoriaActiva && (
                     <button
                         onClick={() => setCategoriaActiva(null)}
-                        className="mb-6 px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300 transition"
+                        className="mb-6 px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300"
                     >
                         ← Volver a categorías
                     </button>
                 )}
 
-                {/* 🛒 PRODUCTOS */}
                 {categoriaActiva && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {products
@@ -105,7 +95,6 @@ export default function ClienteMenu() {
                             ))}
                     </div>
                 )}
-
             </main>
 
             <Cart
@@ -115,8 +104,57 @@ export default function ClienteMenu() {
             />
 
             <Footer />
+
+            {/* ✅ MODAL ÉXITO */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            ¡Pedido enviado! ☕
+                        </h3>
+
+                        <p className="text-gray-600 mb-6">
+                            Tu pedido fue enviado correctamente.
+                            <br />
+                            En breve lo estarán preparando.
+                        </p>
+
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="px-6 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700"
+                        >
+                            Perfecto
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ❌ MODAL ERROR */}
+            {showErrorModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center">
+                        <h3 className="text-2xl font-bold text-red-600 mb-3">
+                            Error 😕
+                        </h3>
+
+                        <p className="text-gray-600 mb-6">
+                            No se pudo enviar el pedido.
+                            <br />
+                            Intentá nuevamente o escaneá el QR.
+                        </p>
+
+                        <button
+                            onClick={() => setShowErrorModal(false)}
+                            className="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 

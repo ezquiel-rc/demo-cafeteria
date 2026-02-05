@@ -8,6 +8,9 @@ export default function PanelCaja() {
     const [totalDia, setTotalDia] = useState(0);
     const [cantidadPedidos, setCantidadPedidos] = useState(0);
 
+    const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         getAppConfig().then(setConfig);
     }, []);
@@ -35,25 +38,28 @@ export default function PanelCaja() {
         setConfig(await getAppConfig());
     };
 
-    const handleCloseCaja = async () => {
+    const confirmarCierreCaja = async () => {
         if (!config?.cajaAbiertaEn) return;
 
-        const confirmar = window.confirm(
-            `¿Cerrar caja?\n\nPedidos: ${cantidadPedidos}\nTotal: $${totalDia}`
-        );
-        if (!confirmar) return;
+        try {
+            setLoading(true);
 
-        await guardarCierreCaja({
-            apertura: config.cajaAbiertaEn,
-            cierre: new Date(),
-            total: totalDia,
-            cantidadPedidos
-        });
+            await guardarCierreCaja({
+                apertura: config.cajaAbiertaEn,
+                cierre: new Date(),
+                total: totalDia,
+                cantidadPedidos
+            });
 
-        await closeCaja();
-        setTotalDia(0);
-        setCantidadPedidos(0);
-        setConfig(await getAppConfig());
+            await closeCaja();
+
+            setTotalDia(0);
+            setCantidadPedidos(0);
+            setConfig(await getAppConfig());
+            setShowModal(false);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -74,8 +80,8 @@ export default function PanelCaja() {
                         <p className="mt-2 text-lg">Total: <strong>${totalDia}</strong></p>
 
                         <button
-                            onClick={handleCloseCaja}
-                            className="mt-6 bg-red-600 text-white px-4 py-2 rounded"
+                            onClick={() => setShowModal(true)}
+                            className="mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                         >
                             Cerrar caja
                         </button>
@@ -83,15 +89,52 @@ export default function PanelCaja() {
                 ) : (
                     <button
                         onClick={handleOpenCaja}
-                        className="mt-6 bg-green-600 text-white px-4 py-2 rounded"
+                        className="mt-6 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                     >
                         Abrir caja
                     </button>
                 )}
             </div>
+
+            {/* 🧾 MODAL CERRAR CAJA */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-gray-900 text-white rounded-xl p-6 w-full max-w-md shadow-xl">
+                        <h3 className="text-xl font-bold mb-4">Cerrar caja</h3>
+
+                        <div className="space-y-2 text-sm text-gray-300">
+                            <p>Pedidos del día: <strong>{cantidadPedidos}</strong></p>
+                            <p>Total a cerrar: <strong>${totalDia}</strong></p>
+                        </div>
+
+                        <p className="mt-4 text-sm text-gray-400">
+                            Esta acción cerrará la caja y guardará el resumen del día.
+                        </p>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowModal(false)}
+                                disabled={loading}
+                                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                onClick={confirmarCierreCaja}
+                                disabled={loading}
+                                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 font-semibold"
+                            >
+                                {loading ? 'Cerrando...' : 'Confirmar cierre'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
+
 
 
 

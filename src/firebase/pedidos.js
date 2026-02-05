@@ -88,8 +88,7 @@ export const updateOrderStatus = async (id, status, total = 0) => {
 export const archivarPedidosEntregados = async () => {
     const q = query(
         collection(db, PEDIDOS_COLLECTION),
-        where("status", "==", "entregado"),
-        where("archivado", "==", false)
+        where("status", "==", "entregado")
     );
 
     const snapshot = await getDocs(q);
@@ -101,6 +100,7 @@ export const archivarPedidosEntregados = async () => {
 
     await batch.commit();
 };
+
 
 // =======================
 // PEDIDOS POR PERÍODO
